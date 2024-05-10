@@ -1,9 +1,9 @@
-//backend/server.js
-
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 const cors = require('cors');
+const jwt = require('jsonwebtoken'); // Import JWT library
+const axios = require('axios'); // Import Axios
 const usersRouter = require('./routes/users'); // Assuming you have a users router defined
 
 // Load environment variables from .env file
@@ -20,6 +20,41 @@ app.use(express.json());
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('MongoDB connection error:', err));
+
+// Middleware to authenticate user by checking the access token
+app.use('/api/authenticate', async (req, res, next) => {
+  try {
+    const { authorization } = req.headers;
+    if (!authorization) throw new Error('Authorization header is missing');
+
+    // Extract the token from the authorization header
+    const token = authorization.split(' ')[1];
+
+    // Verify the token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = decoded.user;
+    next();
+  } catch (error) {
+    console.error('Authentication failed:', error);
+    res.status(401).json({ message: 'Authentication failed' });
+  }
+});
+
+// Middleware to interact with Pi blockchain
+app.use('/api/pi', async (req, res, next) => {
+  try {
+    const response = await axios.post('https://api.minepi.com/verifyAccessToken', { token: req.headers.authorization }, {
+      headers: {
+        Authorization: `Key ${process.env.PI_API_KEY}`
+      }
+    });
+    req.user = response.data.user;
+    next();
+  } catch (error) {
+    console.error('Error interacting with Pi blockchain:', error);
+    res.status(500).json({ message: 'Error interacting with Pi blockchain' });
+  }
+});
 
 // Routes
 app.use('/api/users', usersRouter);
