@@ -5,7 +5,6 @@ const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const usersRouter = require('./routes/users');
-const Auth = require('./models/auth.model'); // Import the Auth model
 
 dotenv.config();
 
@@ -14,7 +13,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const REACT_APP_BACKEND_URL = 'https://pimatribend.onrender.com';
+const REACT_APP_BACKEND_URL = 'https://pisetuptest.onrender.com'; // Add this line
 
 mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true })
   .then(() => console.log('MongoDB connected'))
@@ -24,18 +23,12 @@ app.use('/api/authenticate', async (req, res, next) => {
   try {
     const authResult = req.body;
     console.log('Authentication Result:', authResult);
-
-    // Generate JWT token
+    
+    // Handle authentication result here
+    
+    // Example: Generate JWT token
     const accessToken = jwt.sign({ user: authResult.user }, process.env.JWT_SECRET);
-
-    // Store the auth result in the database
-    const authRecord = new Auth({
-      userId: authResult.user.id,
-      authToken: accessToken
-    });
-
-    await authRecord.save();
-
+    
     // Return token to client
     res.json({ accessToken, user: authResult.user });
   } catch (error) {
